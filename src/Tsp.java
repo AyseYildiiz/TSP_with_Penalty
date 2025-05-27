@@ -26,9 +26,7 @@ class City {
     public int hashCode() {
         return Objects.hash(id);
     }
-}
 
-class Utils {
     public static double calculateTourDistance(List<City> tour) {
         double total = 0;
         for (int i = 0; i < tour.size(); i++) {
@@ -39,8 +37,40 @@ class Utils {
         return total;
     }
 }
+class MST {
+    public static List<City> getMST(List<City> tour) {
+        int n = tour.size();
+        int[]parents = new int[n];
+        double[] distances = new double[n];
+        Arrays.fill(distances, Double.MAX_VALUE);
+        distances[0] = 0;
+        List<City> result = new ArrayList<>();
 
+        for (int i = 0; i < n; i++) {
+            int u = -1;
+            double minDistance = Double.MAX_VALUE;
+            for (int j = 0; j < n; j++) {
+                if (distances[j] < minDistance) {
+                    minDistance = distances[j];
+                    u = j;
+                }
+            }
+            if (parents[u] != u) {
+                result.add(tour.get(u));
+            }
+            for (int v = 0; v < n; v++) {
+                double d = tour.get(u).distanceTo(tour.get(v));
+                if (d < distances[v]) {
+                    distances[v] = d;
+                    parents[v] = u;
+                }
+            }
 
+        }
+
+return result
+    }
+}
 // Basit Twice Around The Tree (TAT) demo implementasyonu (gerçek uygulamada MST + preorder traversal olacak)
 class TwiceAroundTheTree {
     public static List<City> twiceAroundTree(List<City> cities) {
@@ -66,7 +96,7 @@ public class Tsp  {
         List<City> tatSol = TwiceAroundTheTree.twiceAroundTree(cities);
         List<City> chSol = Christofides.christofides(cities);
 
-        List<City> current = Utils.calculateTourDistance(tatSol) < Utils.calculateTourDistance(chSol) ? tatSol : chSol;
+        List<City> current = City.calculateTourDistance(tatSol) < City.calculateTourDistance(chSol) ? tatSol : chSol;
         List<City> best = new ArrayList<>(current);
 
         double temperature = T0;
@@ -77,12 +107,12 @@ public class Tsp  {
         while (temperature > Tmin) {
             List<City> neighbor = random2Opt(current);
 
-            double delta = Utils.calculateTourDistance(neighbor) - Utils.calculateTourDistance(current);
+            double delta = City.calculateTourDistance(neighbor) - City.calculateTourDistance(current);
 
             if (delta < 0 || rand.nextDouble() < Math.exp(-delta / temperature)) {
                 current = tabuSearchImprove(neighbor, tabuList);
 
-                if (Utils.calculateTourDistance(current) < Utils.calculateTourDistance(best)) {
+                if (City.calculateTourDistance(current) < City.calculateTourDistance(best)) {
                     best = new ArrayList<>(current);
                 }
 
@@ -100,7 +130,7 @@ public class Tsp  {
     }
 
     double totalDistance(List<City> tour) {
-        return Utils.calculateTourDistance(tour);
+        return City.calculateTourDistance(tour);
     }
 
     private List<City> random2Opt(List<City> tour) {
@@ -122,7 +152,7 @@ public class Tsp  {
 
     private List<City> tabuSearchImprove(List<City> startTour, List<List<City>> tabuList) {
         List<City> bestLocal = new ArrayList<>(startTour);
-        double bestDist = Utils.calculateTourDistance(bestLocal);
+        double bestDist = City.calculateTourDistance(bestLocal);
 
         for (int i = 0; i < startTour.size() - 1; i++) {
             for (int j = i + 1; j < startTour.size(); j++) {
@@ -131,7 +161,7 @@ public class Tsp  {
 
                 if (tabuListContains(tabuList, candidate)) continue;
 
-                double candidateDist = Utils.calculateTourDistance(candidate);
+                double candidateDist = City.calculateTourDistance(candidate);
                 if (candidateDist < bestDist) {
                     bestDist = candidateDist;
                     bestLocal = candidate;
