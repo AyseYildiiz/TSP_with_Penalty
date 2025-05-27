@@ -37,25 +37,27 @@ class City {
         return total;
     }
 }
-class MST {
-    public static List<City> getMST(List<City> tour) {
+class TreeOperations {
+    public static List<List<Integer>> getMST(List<City> tour) {
         int n = tour.size();
-        int[]parents = new int[n];
         double[] distances = new double[n];
+        boolean[] visited = new boolean[n];
         Arrays.fill(distances, Double.MAX_VALUE);
         distances[0] = 0;
-        List<City> result = new ArrayList<>();
+        List<City> result = new ArrayList<City>();
 
+        int[] parents = new int[n];
         for (int i = 0; i < n; i++) {
             int u = -1;
             double minDistance = Double.MAX_VALUE;
             for (int j = 0; j < n; j++) {
-                if (distances[j] < minDistance) {
+                if (!visited[j] && distances[j] < minDistance) {
                     minDistance = distances[j];
                     u = j;
                 }
             }
-            if (parents[u] != u) {
+            visited[u] = true;
+            if (i != 0) {
                 result.add(tour.get(u));
             }
             for (int v = 0; v < n; v++) {
@@ -67,22 +69,48 @@ class MST {
             }
 
         }
+        List<List<Integer>> tree = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            tree.add(new ArrayList<>());
+        }
+        for (int i = 1; i < n; i++) {
+            tree.get(parents[i]).add(i);
+            tree.get(i).add(parents[i]);
+        }
 
-return result
+    return tree;
+    }
+
+    public static void preorderDFS(int u, List<List<Integer>> tree, boolean[] visited, List<Integer> tour) {
+        visited[u] = true;
+        tour.add(u);
+        for (int v : tree.get(u)) {
+            if (!visited[v]) {
+                preorderDFS(v, tree, visited, tour);
+            }
+        }
     }
 }
-// Basit Twice Around The Tree (TAT) demo implementasyonu (gerçek uygulamada MST + preorder traversal olacak)
+
 class TwiceAroundTheTree {
     public static List<City> twiceAroundTree(List<City> cities) {
-        // Demo: sadece verilen listeyi döndür (sıralı tur)
-        return new ArrayList<>(cities);
+        List<List<Integer>> mstTree = TreeOperations.getMST(cities);
+        List<Integer> preorderTour = new ArrayList<>();
+        boolean[] visited = new boolean[cities.size()];
+        TreeOperations.preorderDFS(0, mstTree, visited, preorderTour);
+        List<City> tour = new ArrayList<>();
+        for (int i : preorderTour) {
+            tour.add(cities.get(i));
+        }
+        tour.add(cities.get(preorderTour.getFirst()));
+        return tour;
     }
 }
 
-// Basit Christofides demo implementasyonu (gerçek uygulamada MST + perfect matching + Euler tour olacak)
+// Blank version for now
 class Christofides {
     public static List<City> christofides(List<City> cities) {
-        // Demo: sadece verilen listeyi döndür (sıralı tur)
+        List<List<Integer>> mstTree = TreeOperations.getMST(cities);
         return new ArrayList<>(cities);
     }
 }
