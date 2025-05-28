@@ -1,119 +1,5 @@
 import java.util.*;
 
-class City {
-    double x, y;
-    int id;
-
-    public City(int id, double x, double y) {
-        this.id = id;
-        this.x = x;
-        this.y = y;
-    }
-
-    public double distanceTo(City other) {
-        double dx = this.x - other.x;
-        double dy = this.y - other.y;
-        return Math.sqrt(dx * dx + dy * dy);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (!(obj instanceof City other)) return false;
-        return this.id == other.id;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
-    }
-
-    public static double calculateTourDistance(List<City> tour) {
-        double total = 0;
-        for (int i = 0; i < tour.size(); i++) {
-            City from = tour.get(i);
-            City to = tour.get((i + 1) % tour.size());
-            total += from.distanceTo(to);
-        }
-        return total;
-    }
-}
-class TreeOperations {
-    public static List<List<Integer>> getMST(List<City> tour) {
-        int n = tour.size();
-        double[] distances = new double[n];
-        boolean[] visited = new boolean[n];
-        Arrays.fill(distances, Double.MAX_VALUE);
-        distances[0] = 0;
-        List<City> result = new ArrayList<City>();
-
-        int[] parents = new int[n];
-        for (int i = 0; i < n; i++) {
-            int u = -1;
-            double minDistance = Double.MAX_VALUE;
-            for (int j = 0; j < n; j++) {
-                if (!visited[j] && distances[j] < minDistance) {
-                    minDistance = distances[j];
-                    u = j;
-                }
-            }
-            visited[u] = true;
-            if (i != 0) {
-                result.add(tour.get(u));
-            }
-            for (int v = 0; v < n; v++) {
-                double d = tour.get(u).distanceTo(tour.get(v));
-                if (d < distances[v]) {
-                    distances[v] = d;
-                    parents[v] = u;
-                }
-            }
-
-        }
-        List<List<Integer>> tree = new ArrayList<>();
-        for (int i = 0; i < n; i++) {
-            tree.add(new ArrayList<>());
-        }
-        for (int i = 1; i < n; i++) {
-            tree.get(parents[i]).add(i);
-            tree.get(i).add(parents[i]);
-        }
-
-    return tree;
-    }
-
-    public static void preorderDFS(int u, List<List<Integer>> tree, boolean[] visited, List<Integer> tour) {
-        visited[u] = true;
-        tour.add(u);
-        for (int v : tree.get(u)) {
-            if (!visited[v]) {
-                preorderDFS(v, tree, visited, tour);
-            }
-        }
-    }
-}
-
-class TwiceAroundTheTree {
-    public static List<City> twiceAroundTree(List<City> cities) {
-        List<List<Integer>> mstTree = TreeOperations.getMST(cities);
-        List<Integer> preorderTour = new ArrayList<>();
-        boolean[] visited = new boolean[cities.size()];
-        TreeOperations.preorderDFS(0, mstTree, visited, preorderTour);
-        List<City> tour = new ArrayList<>();
-        for (int i : preorderTour) {
-            tour.add(cities.get(i));
-        }
-        tour.add(cities.get(preorderTour.getFirst()));
-        return tour;
-    }
-}
-
-// Blank version for now
-class Christofides {
-    public static List<City> christofides(List<City> cities) {
-        List<List<Integer>> mstTree = TreeOperations.getMST(cities);
-        return new ArrayList<>(cities);
-    }
-}
 
 public class Tsp  {
     private static final double T0 = 1000;
@@ -122,7 +8,7 @@ public class Tsp  {
 
     List<City> solve(List<City> cities) {
         List<City> tatSol = TwiceAroundTheTree.twiceAroundTree(cities);
-        List<City> chSol = Christofides.christofides(cities);
+        List<City> chSol = City.generateTour(cities);
 
         List<City> current = City.calculateTourDistance(tatSol) < City.calculateTourDistance(chSol) ? tatSol : chSol;
         List<City> best = new ArrayList<>(current);
@@ -215,10 +101,17 @@ public class Tsp  {
         return true;
     }
 
-    // --- Main metodu ile test ---
+    //Main
     public static void main(String[] args) {
-        List<City> cities = generateRandomCities(20, 100, 100);
+//        List<City> cities = generateRandomCities(20, 100, 100);
 
+        List<City> cities = Arrays.asList(
+                new City(0, 0, 0),
+                new City(1, 1, 3),
+                new City(2, 4, 3),
+                new City(3, 6, 1),
+                new City(4, 3, 0)
+        );
         Tsp solver = new Tsp();
 
         long start = System.currentTimeMillis();
@@ -233,14 +126,14 @@ public class Tsp  {
         System.out.println("\nTime elapsed: " + (end - start) + " ms");
     }
 
-    private static List<City> generateRandomCities(int n, int maxX, int maxY) {
-        Random rand = new Random(42);
-        List<City> cities = new ArrayList<>();
-        for (int i = 0; i < n; i++) {
-            double x = rand.nextDouble() * maxX;
-            double y = rand.nextDouble() * maxY;
-            cities.add(new City(i, x, y));
-        }
-        return cities;
-    }
+//    private static List<City> generateRandomCities(int n, int maxX, int maxY) {
+//        Random rand = new Random(42);
+//        List<City> cities = new ArrayList<>();
+//        for (int i = 0; i < n; i++) {
+//            double x = rand.nextDouble() * maxX;
+//            double y = rand.nextDouble() * maxY;
+//            cities.add(new City(i, x, y));
+//        }
+//        return cities;
+//    }
 }
