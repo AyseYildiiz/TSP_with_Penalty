@@ -1,101 +1,82 @@
 import java.util.*;
 
 class TreeOperations {
-    public static LinkedList<City> deleteMin(LinkedList<City> cities){
-        LinkedList<City> min = new LinkedList<>();
-
-
+    public static int getMin(int[] key, boolean[] inMST) {
+        int min_index = -1;
+        int min = Integer.MAX_VALUE;
+        for (int i = 0; i < inMST.length; i++) {
+            if (!inMST[i] && min > key[i]) {
+                min = key[i];
+                min_index = i;
+            }
+        }
+        return min_index;
     }
 
-    public static List<List<Integer>> getMST() {
-        LinkedList<City> tour = City.cities;
-        int n = tour.size();
-        double[] distances = new double[n];
-        boolean[] visited = new boolean[n];
-        int[] from = new int[n];
-
-        Arrays.fill(distances, Double.MAX_VALUE);
-        distances[0] = 0;
-        Arrays.fill(from, -1);
-
+    public static int[][] primMST() {
+        int[][] graph = City.distancesMatrix;
+        int n = City.distancesMatrix.length;
+        int[] parent = new int[n];
+        int[] key = new int[n];
+        boolean[] inMST = new boolean[n];
 
         for (int i = 0; i < n; i++) {
-            int u = -1;
-            double minDistance = Double.MAX_VALUE;
+            inMST[i] = false;
+            key[i] = Integer.MAX_VALUE;
+        }
 
-            for (int j = 0; j < n; j++) {
-                if (!visited[j] && distances[j] < minDistance) {
-                    minDistance = distances[j];
-                    u = j;
-                }
-            }
-
-            if (u == -1) {
-                throw new IllegalArgumentException("Graph is not connected!");
-            }
-
-            visited[u] = true;
-
+        key[0] = 0;
+        parent[0] = -1;
+        for (int count = 0; count < n - 1; count++) {
+            int u = getMin(key, inMST);
+            inMST[u] = true;
             for (int v = 0; v < n; v++) {
-                if (!visited[v]) {
-                    double d = tour.get(u).distanceTo(tour.get(v));
-                    if (d < distances[v]) {
-                        distances[v] = d;
-                        from[v] = u;
-                    }
+                if (graph[u][v] != 0 && !inMST[v]
+                        && graph[u][v] < key[v]) {
+                    parent[v] = u;
+                    key[v] = graph[u][v];
                 }
             }
         }
-
-
-
-
-
-
-        return tree;
-    }
-
-
-    public static void preorderDFS(int u, List<List<Integer>> tree, boolean[] visited, List<Integer> tour) {
-        visited[u] = true;
-        tour.add(u);
-        for (int v : tree.get(u)) {
-            if (!visited[v]) {
-                preorderDFS(v, tree, visited, tour);
-            }
+        List<int[]> mstEdges = new ArrayList<>();
+        for (int i = 1; i < n; i++) {
+            mstEdges.add(new int[]{parent[i], i, graph[parent[i]][i]});
         }
-    }
-    public static void preorderBFS(int u, List<List<Integer>> tree, boolean[] visited, List<Integer> tour) {
-        int n = tree.size();
-        boolean[] visitBefore = new boolean[n];
-        Queue<Integer> queue = new LinkedList<>();
+        int[][] mstEdgesArray = new int[mstEdges.size()][3];
+        for (int i = 0; i < mstEdges.size(); i++) {
+            mstEdgesArray[i] = mstEdges.get(i);
+        }
 
+        return mstEdgesArray;
+    }
+
+    public static List<List<Integer>> buildAdjacencyList(int[][] mstEdges, int n) {
+        List<List<Integer>> adj = new ArrayList<>();
         for (int i = 0; i < n; i++) {
-            if (!visitBefore[i]) {
-                queue.add(i);
-                visitBefore[i] = true;
-
-                while (!queue.isEmpty()) {
-                    int current = queue.poll();
-                    System.out.print(current + " ");
-
-                    for (int neighbor : tree.get(current)) {
-                        if (!visitBefore[neighbor]) {
-                            visitBefore[neighbor] = true;
-                            queue.add(neighbor);
-                        }
-                    }
-                }
-            }
+            adj.add(new ArrayList<>());
         }
+        for (int[] edge : mstEdges) {
+            int u = edge[0], v = edge[1];
+            adj.get(u).add(v);
+            adj.get(v).add(u);
+        }
+        return adj;
     }
 
 
-    public static List<Integer> getOddDegreeVertices(List<List<Integer>> tree) {
-        List<Integer> oddVertices = new ArrayList<>();
+    public static List<Integer> getOddDegreeVertices(int[][] mstEdges, int n) {
+        int[] degree = new int[n];  // Her düğümün derecesini tutar
 
-        for (int i = 0; i < tree.size(); i++) {
-            if (tree.get(i).size() % 2 != 0) {
+        for (int[] mstEdge : mstEdges) {
+            int u = mstEdge[0];
+            int v = mstEdge[1];
+            degree[u]++;
+            degree[v]++;
+        }
+
+        List<Integer> oddVertices = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            if (degree[i] % 2 != 0) {
                 oddVertices.add(i);
             }
         }
@@ -103,23 +84,125 @@ class TreeOperations {
         return oddVertices;
     }
 
+    public static int[][] createOddDegreeGraph(List<Integer> oddVertices) {
+        int n = oddVertices.size();
+        int[][] oddGraph = new int[n][n];
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                int u = oddVertices.get(i);
+                int v = oddVertices.get(j);
+                oddGraph[i][j] = City.distancesMatrix[u][v];
+                oddGraph[j][i] = City.distancesMatrix[u][v];
+            }
+        }
+        return oddGraph;
+    }
+
+    public static void dfsEulerian(int node, List<List<Integer>> adj, boolean[][] visitedEdges, List<Integer> tour) {
+        for (int neighbor : adj.get(node)) {
+            if (!visitedEdges[node][neighbor]) {
+                visitedEdges[node][neighbor] = true;
+                visitedEdges[neighbor][node] = true;
+                dfsEulerian(neighbor, adj, visitedEdges, tour);
+            }
+        }
+        tour.add(node);
+    }
+
+    public static List<Integer> makeHamiltonianTour(List<Integer> eulerTour) {
+        Collections.reverse(eulerTour);
+        Set<Integer> visited = new HashSet<>();
+        List<Integer> hamiltonianTour = new ArrayList<>();
+
+        // Tersten eklenmiş olduğu için tersten gezip tekrar normale çevirebiliriz ya da direkt tersini alabiliriz
+        Collections.reverse(eulerTour);
+
+        for (int city : eulerTour) {
+            if (!visited.contains(city)) {
+                visited.add(city);
+                hamiltonianTour.add(city);
+            }
+        }
+        // Başlangıç noktasına dönmek için turun sonuna ilk şehri ekle
+        if (!hamiltonianTour.isEmpty()) {
+            hamiltonianTour.add(hamiltonianTour.get(0));
+        }
+
+        return hamiltonianTour;
+    }
+
     public static List<List<Integer>> combineTrees(List<List<Integer>> mst, List<List<Integer>> matching) {
-        int n = mst.size();
+        int n = City.distancesMatrix.length;
         List<List<Integer>> combined = new ArrayList<>();
         for (int i = 0; i < n; i++) {
             combined.add(new ArrayList<>());
-            combined.get(i).addAll(mst.get(i)); // MST kenarlarını ekle
         }
 
-        for (int u = 0; u < n; u++) {
-            for (int v : matching.get(u)) {
-                if (!combined.get(u).contains(v)) {
+        // MST'den kenarları ekle
+        for (int u = 0; u < mst.size(); u++) {
+            for (int v : mst.get(u)) {
+                if (!combined.get(u).contains(v))
                     combined.get(u).add(v);
-                }
+                if (!combined.get(v).contains(u))
+                    combined.get(v).add(u);
             }
+        }
+
+        // Blossom eşleşmelerini ekle
+        for (List<Integer> edge : matching) {
+            int u = edge.get(0);
+            int v = edge.get(1);
+            if (!combined.get(u).contains(v))
+                combined.get(u).add(v);
+            if (!combined.get(v).contains(u))
+                combined.get(v).add(u);
         }
 
         return combined;
     }
-
 }
+
+
+
+
+
+
+//    public static void preorderDFS(int u, List<List<Integer>> tree, boolean[] visited, List<Integer> tour) {
+//        visited[u] = true;
+//        tour.add(u);
+//        for (int v : tree.get(u)) {
+//            if (!visited[v]) {
+//                preorderDFS(v, tree, visited, tour);
+//            }
+//        }
+//    }
+//    public static void preorderBFS(int u, List<List<Integer>> tree, boolean[] visited, List<Integer> tour) {
+//        int n = tree.size();
+//        boolean[] visitBefore = new boolean[n];
+//        Queue<Integer> queue = new LinkedList<>();
+//
+//        for (int i = 0; i < n; i++) {
+//            if (!visitBefore[i]) {
+//                queue.add(i);
+//                visitBefore[i] = true;
+//
+//                while (!queue.isEmpty()) {
+//                    int current = queue.poll();
+//                    System.out.print(current + " ");
+//
+//                    for (int neighbor : tree.get(current)) {
+//                        if (!visitBefore[neighbor]) {
+//                            visitBefore[neighbor] = true;
+//                            queue.add(neighbor);
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
+//
+//
+//
+//
+
+

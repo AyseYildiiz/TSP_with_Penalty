@@ -1,17 +1,31 @@
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class TwiceAroundTheTree {
-public static List<City> twiceAroundTree(List<City> cities) {
-    List<List<Integer>> mstTree = TreeOperations.getMST(cities);
-    List<Integer> preorderTour = new ArrayList<>();
-    boolean[] visited = new boolean[cities.size()];
-    TreeOperations.preorderDFS(0, mstTree, visited, preorderTour);
-    List<City> tour = new ArrayList<>();
-    for (int i : preorderTour) {
-        tour.add(cities.get(i));
+    public static List<Integer> approximateTSPTour(int[][] graph) {
+        int n = graph.length;
+
+        int[][] mstEdges = TreeOperations.primMST();
+
+        List<List<Integer>> adj = TreeOperations.buildAdjacencyList(mstEdges, n);
+
+        boolean[][] visitedEdges = new boolean[n][n];
+        List<Integer> eulerianTour = new ArrayList<>();
+        TreeOperations.dfsEulerian(0, adj, visitedEdges, eulerianTour);
+        Collections.reverse(eulerianTour);
+
+        Set<Integer> visited = new HashSet<>();
+        List<Integer> tspTour = new ArrayList<>();
+
+        for (int node : eulerianTour) {
+            if (!visited.contains(node)) {
+                visited.add(node);
+                tspTour.add(node);
+            }
+        }
+
+        tspTour.add(tspTour.getFirst());
+
+        return tspTour;
     }
-    tour.add(cities.get(preorderTour.getFirst()));
-    return tour;
-}
+
 }
