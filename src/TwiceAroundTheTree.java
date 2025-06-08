@@ -23,7 +23,7 @@ public class TwiceAroundTheTree {
             }
         }
 
-        tspTour.add(tspTour.getFirst());
+        tspTour.add(tspTour.get(0));
 
         return tspTour;
     }

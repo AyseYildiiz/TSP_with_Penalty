@@ -4,19 +4,11 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
-class Result {
-    List<Integer> tour;
-    String algorithmName;
-
-    Result(List<Integer> tour, String algorithmName) {
-        this.tour = tour;
-        this.algorithmName = algorithmName;
-    }
-}
-
 public class Main {
     public static void main(String[] args) {
-        String inputFileName = "example-input-2.txt";
+        System.out.println("Working Dir = " + System.getProperty("user.dir"));
+
+        String inputFileName = "src/example-input-3.txt";
         String outputFileName = inputFileName.replace("input", "output");
 
         System.out.println("TSP with Penalty Solver");
