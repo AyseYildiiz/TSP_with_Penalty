@@ -1,4 +1,5 @@
 import java.util.*;
+
 public class ThreeOpt {
     public static List<Integer> improveTour(List<Integer> tour, int[][] graph) {
         boolean improvement = true;
@@ -28,16 +29,30 @@ public class ThreeOpt {
         int C = tour.get(j - 1), D = tour.get(j);
         int E = tour.get(k - 1), F = tour.get(k);
 
-        int d0 = graph[A][B] + graph[C][D] + graph[E][F];
+        int d0;
+        if (graph != null) {
+            d0 = graph[A][B] + graph[C][D] + graph[E][F];
+        } else {
+            d0 = City.getDistance(A, B) + City.getDistance(C, D) + City.getDistance(E, F);
+        }
+
         List<Integer> newTour = new ArrayList<>(tour);
         reverseSegment(newTour, i, j - 1);
         reverseSegment(newTour, j, k - 1);
 
-        int d1 = graph[newTour.get(i - 1)][newTour.get(i)] +
-                graph[newTour.get(j - 1)][newTour.get(j)] +
-                graph[newTour.get(k - 1)][newTour.get(k)];
+        int d1;
+        if (graph != null) {
+            d1 = graph[newTour.get(i - 1)][newTour.get(i)] +
+                    graph[newTour.get(j - 1)][newTour.get(j)] +
+                    graph[newTour.get(k - 1)][newTour.get(k)];
+        } else {
+            d1 = City.getDistance(newTour.get(i - 1), newTour.get(i)) +
+                    City.getDistance(newTour.get(j - 1), newTour.get(j)) +
+                    City.getDistance(newTour.get(k - 1), newTour.get(k));
+        }
 
-        if (d1 < d0) return newTour;
+        if (d1 < d0)
+            return newTour;
         return null;
     }
 

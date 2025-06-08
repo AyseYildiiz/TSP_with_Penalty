@@ -5,13 +5,15 @@ import java.util.List;
 public class TabuSearch {
     static int tabuTenure = 7;
 
-    public static List<Integer> solve(List<Integer> initialTour, int [][] distanceMatrix, int maxIterations) {
+    public static List<Integer> solve(List<Integer> initialTour, int[][] distanceMatrix, int maxIterations) {
         int n = initialTour.size();
         List<Integer> bestTour = new ArrayList<>(initialTour);
         List<Integer> currentTour = new ArrayList<>(initialTour);
         double bestCost = City.calculateTourCost(bestTour, distanceMatrix);
 
-        int[][] tabuList = new int[n][n];
+        // Use the size of the distance matrix for tabu list, not the tour size
+        int matrixSize = (distanceMatrix != null) ? distanceMatrix.length : City.cities.size();
+        int[][] tabuList = new int[matrixSize][matrixSize];
         int iteration = 0;
 
         while (iteration < maxIterations) {
@@ -24,7 +26,15 @@ public class TabuSearch {
                     Collections.swap(neighbor, i, j);
                     double cost = City.calculateTourCost(neighbor, distanceMatrix);
 
-                    boolean isTabu = tabuList[currentTour.get(i)][currentTour.get(j)] > iteration;
+                    // Get the actual city indices safely
+                    int cityI = currentTour.get(i);
+                    int cityJ = currentTour.get(j);
+
+                    // Safety check to avoid array index out of bounds
+                    boolean isTabu = false;
+                    if (cityI < matrixSize && cityJ < matrixSize) {
+                        isTabu = tabuList[cityI][cityJ] > iteration;
+                    }
 
                     if (!isTabu || cost < bestCost) {
                         if (cost < bestNeighborCost) {
@@ -38,8 +48,16 @@ public class TabuSearch {
 
             if (swapI != -1 && swapJ != -1) {
                 Collections.swap(currentTour, swapI, swapJ);
-                tabuList[currentTour.get(swapI)][currentTour.get(swapJ)] = iteration + tabuTenure;
-                tabuList[currentTour.get(swapJ)][currentTour.get(swapI)] = iteration + tabuTenure;
+
+                // Get the actual city indices safely
+                int cityI = currentTour.get(swapI);
+                int cityJ = currentTour.get(swapJ);
+
+                // Safety check to avoid array index out of bounds
+                if (cityI < matrixSize && cityJ < matrixSize) {
+                    tabuList[cityI][cityJ] = iteration + tabuTenure;
+                    tabuList[cityJ][cityI] = iteration + tabuTenure;
+                }
 
                 double currentCost = City.calculateTourCost(currentTour, distanceMatrix);
                 if (currentCost < bestCost) {

@@ -1,4 +1,5 @@
 import java.util.*;
+
 public class TwoOpt {
     public static List<Integer> improveTour(List<Integer> tour, int[][] graph) {
         boolean improvement = true;
@@ -14,8 +15,14 @@ public class TwoOpt {
                     int c = tour.get(j);
                     int d = tour.get(j + 1);
 
-                    int currentDistance = graph[a][b] + graph[c][d];
-                    int newDistance = graph[a][c] + graph[b][d];
+                    int currentDistance, newDistance;
+                    if (graph != null) {
+                        currentDistance = graph[a][b] + graph[c][d];
+                        newDistance = graph[a][c] + graph[b][d];
+                    } else {
+                        currentDistance = City.getDistance(a, b) + City.getDistance(c, d);
+                        newDistance = City.getDistance(a, c) + City.getDistance(b, d);
+                    }
 
                     if (newDistance < currentDistance) {
                         reverseSegment(tour, i, j);
@@ -37,6 +44,5 @@ public class TwoOpt {
             j--;
         }
     }
-
 
 }
