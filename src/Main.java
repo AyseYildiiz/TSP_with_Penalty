@@ -4,16 +4,20 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
+// Main class for TSP with Penalty problem solver
 public class Main {
+    // Entry point of the application
     public static void main(String[] args) {
+        // Display current working directory
         System.out.println("Working Dir = " + System.getProperty("user.dir"));
 
+        // Set input and output file names
         String inputFileName = "src/example-input-4.txt";
         String outputFileName = inputFileName.replace("input", "output");
 
+        // Display solver information
         System.out.println("TSP with Penalty Solver");
-        System.out.println("Input file: " + inputFileName);
-
+        System.out.println("Input file: " + inputFileName); // Process input file and find best solution
         Result result = processFile(inputFileName);
         List<Integer> bestTour = result.tour;
 
@@ -23,22 +27,26 @@ public class Main {
             outputTour.remove(outputTour.size() - 1);
         }
 
+        // Calculate final costs and statistics
         int totalCost = City.calculateTourCost(bestTour, City.distancesMatrix);
         int citiesVisited = outputTour.size();
 
+        // Write results to output file
         writeOutputFile(outputFileName, outputTour, totalCost, citiesVisited);
 
+        // Display final results
         System.out.println("Output file: " + outputFileName);
         System.out.println("Total cost: " + totalCost);
         System.out.println("Cities visited: " + citiesVisited + "/" + City.cities.size());
         System.out.println("Best algorithm: " + result.algorithmName);
-    }
+    } // Processes input file and finds optimal tour using various algorithms
 
     private static Result processFile(String fileName) {
         // Reset and read input
         City.cities.clear();
         City.distancesMatrix = null;
 
+        // Read penalty value and city coordinates from input file
         try (Scanner scanner = new Scanner(new File(fileName))) {
             if (scanner.hasNextInt()) {
                 City.penalty = scanner.nextInt();
@@ -51,13 +59,13 @@ public class Main {
             throw new RuntimeException(e);
         }
 
-        System.out.println("Cities: " + City.cities.size() + ", Penalty: " + City.penalty);
-
-        // Create distance matrix
+        System.out.println("Cities: " + City.cities.size() + ", Penalty: " + City.penalty); // Create distance matrix
         City.createDistancesMatrixOptimized();
 
         List<Integer> bestTour;
-        String bestAlgorithm; // If more than 15,000 cities, use Fast Hybrid approach
+        String bestAlgorithm;
+
+        // If more than 15,000 cities, use Fast Hybrid approach
         if (City.cities.size() > 15000) {
             System.out.println("Large instance - using Fast Hybrid approach");
             bestTour = FastHybridSolver.solve(City.distancesMatrix);
@@ -66,11 +74,10 @@ public class Main {
             // For smaller instances, try multiple algorithms
             System.out.println("Standard instance - testing multiple algorithms");
 
+            // Initialize variables for best solution tracking
             List<Integer> bestSolution = null;
             int bestCost = Integer.MAX_VALUE;
-            bestAlgorithm = "None";
-
-            // Nearest Neighbor
+            bestAlgorithm = "None"; // Nearest Neighbor
             List<Integer> nnTour = NearestNeighbour.approximateTSPTour(City.distancesMatrix);
             nnTour = TourUtils.pruneTourWithPenalty(nnTour, City.distancesMatrix);
             int nnCost = City.calculateTourCost(nnTour, City.distancesMatrix);
@@ -89,7 +96,9 @@ public class Main {
                 bestCost = optimizedCost;
                 bestSolution = optimizedTour;
                 bestAlgorithm = "Nearest Neighbor + 2-opt + 3-opt";
-            } // Christofides Enhanced
+            }
+
+            // Christofides Enhanced
             try {
                 List<Integer> christofidesTour = ChristofidesEnhanced.getOptimizedChristofidesTour(false);
                 int christofidesCost = City.calculateTourCost(christofidesTour, City.distancesMatrix);
@@ -114,7 +123,9 @@ public class Main {
                 }
             } catch (Exception e) {
                 System.out.println("TabuSearch failed: " + e.getMessage());
-            } // OptimizationStrategies
+            }
+
+            // OptimizationStrategies
             try {
                 List<Integer> optimizationTour = OptimizationStrategies.optimizeWithPreprocessing(City.distancesMatrix,
                         5000);
@@ -134,6 +145,7 @@ public class Main {
         return new Result(bestTour, bestAlgorithm);
     }
 
+    // Writes the tour results to output file
     private static void writeOutputFile(String fileName, List<Integer> tour, int totalCost, int citiesVisited) {
         try {
             FileWriter writer = new FileWriter(fileName);

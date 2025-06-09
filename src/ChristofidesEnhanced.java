@@ -1,23 +1,20 @@
 import java.util.*;
 
+// Enhanced Christofides algorithm with optimizations for large instances
 class ChristofidesEnhanced {
-    /**
-     * Enhanced Christofides algorithm that works for large instances
-     * with 2-opt/3-opt optimization and penalty-aware processing
-     */
+    // Main entry point for enhanced Christofides algorithm
     public static List<Integer> getOptimizedChristofidesTour(boolean isLargeInstance) {
         System.out.println("Running Enhanced Christofides algorithm...");
         long startTime = System.currentTimeMillis();
 
         try {
-            // For very large instances, use high-quality heuristic instead of full
-            // Christofides
+            // Choose initial tour strategy based on instance size
             List<Integer> initialTour;
             if (City.cities.size() > 5000) {
                 System.out.println("├─ Using high-quality heuristic for very large instance");
                 initialTour = getHighQualityInitialTour();
             } else {
-                // Step 1: Get basic Christofides tour for smaller instances
+                // Get basic Christofides tour for smaller instances
                 initialTour = getChristofidesTour();
             }
 
@@ -29,7 +26,7 @@ class ChristofidesEnhanced {
                 return NearestNeighbour.approximateTSPTour(City.distancesMatrix);
             }
 
-            // Step 2: Apply local optimization based on instance size
+            // Apply local optimization based on instance size
             List<Integer> optimizedTour = initialTour;
             if (isLargeInstance) {
                 // For large instances, use lighter optimization
@@ -44,7 +41,8 @@ class ChristofidesEnhanced {
                 long twoOptTime = System.currentTimeMillis() - startTime - initialTime;
                 System.out.println("├─ 2-opt completed in " + (twoOptTime / 1000.0) + "s");
 
-                if (City.cities.size() <= 1000) { // Only for smaller instances
+                // Apply 3-opt for small instances only
+                if (City.cities.size() <= 1000) {
                     System.out.println("├─ Applying 3-opt optimization...");
                     optimizedTour = ThreeOpt.improveTour(optimizedTour, City.distancesMatrix);
                     long threeOptTime = System.currentTimeMillis() - startTime - initialTime - twoOptTime;
@@ -52,7 +50,7 @@ class ChristofidesEnhanced {
                 }
             }
 
-            // Step 3: Apply penalty-aware pruning
+            // Apply penalty-aware pruning
             System.out.println("├─ Applying penalty-aware optimization...");
             List<Integer> finalTour;
             if (isLargeInstance) {
@@ -77,9 +75,8 @@ class ChristofidesEnhanced {
         }
     }
 
-    /**
-     * Enhanced Christofides algorithm that can handle null distance matrix
-     */
+    // Enhanced Christofides algorithm that can handle null distance matrix //
+    // Enhanced Christofides algorithm that can handle null distance matrix
     public static List<Integer> getChristofidesTour() {
         // Check if we can use the matrix-based approach
         if (City.distancesMatrix != null) {
@@ -89,9 +86,8 @@ class ChristofidesEnhanced {
         }
     }
 
-    /**
-     * Traditional Christofides using distance matrix
-     */
+    // Traditional Christofides using distance matrix // Traditional Christofides
+    // using distance matrix
     private static List<Integer> getMatrixBasedChristofidesTour() {
         int[][] mst = TreeOperations.primMST(City.distancesMatrix);
         List<List<Integer>> adjacencyList = TreeOperations.buildAdjacencyList(mst, City.distancesMatrix.length);
@@ -104,9 +100,8 @@ class ChristofidesEnhanced {
         return TreeOperations.makeHamiltonianTour(eulerianTour);
     }
 
-    /**
-     * Christofides using on-demand distance calculation for large instances
-     */
+    // Christofides using on-demand distance calculation for large instances //
+    // Christofides using on-demand distance calculation for large instances
     private static List<Integer> getOnDemandChristofidesTour() {
         int numCities = City.cities.size();
 
@@ -114,8 +109,8 @@ class ChristofidesEnhanced {
         if (numCities > 5000) {
             return getApproximateChristofidesTour(numCities);
         }
+
         // Create a virtual distance matrix for medium-large instances
-        // We'll compute distances on-demand
         int[][] virtualMatrix = new int[numCities][numCities];
 
         // Fill matrix on-demand with caching
@@ -149,15 +144,13 @@ class ChristofidesEnhanced {
         }
     }
 
-    /**
-     * Approximate Christofides for very large instances using sampling
-     */
+    // Approximate Christofides for very large instances using sampling
     private static List<Integer> getApproximateChristofidesTour(int numCities) {
         System.out.println("├─ Using approximate Christofides for very large instance");
 
         List<Integer> tour = NearestNeighbour.approximateTSPTour(null);
 
-        // Apply limited 2-opt to improve tour quality (Christofides-like quality)
+        // Apply limited 2-opt to improve tour quality
         if (tour != null && tour.size() > 3) {
             tour = applyLimited2Opt(tour, Math.min(1000, numCities / 10));
         }
@@ -165,9 +158,7 @@ class ChristofidesEnhanced {
         return tour;
     }
 
-    /**
-     * Limited 2-opt optimization for large instances
-     */
+    // Limited 2-opt optimization for large instances
     private static List<Integer> applyLimited2Opt(List<Integer> tour, int maxIterations) {
         if (tour.size() < 4)
             return tour;
@@ -210,13 +201,10 @@ class ChristofidesEnhanced {
                 System.out.println("├─ 2-opt progress: " + iterations + "/" + maxIterations + " iterations");
             }
         }
-
         return bestTour;
     }
 
-    /**
-     * Perform 2-opt swap between positions i and j
-     */
+    // Perform 2-opt swap between positions i and j
     private static List<Integer> perform2OptSwap(List<Integer> tour, int i, int j) {
         List<Integer> newTour = new ArrayList<>();
 
@@ -238,10 +226,6 @@ class ChristofidesEnhanced {
         return newTour;
     }
 
-    /**
-     * Generate a high-quality initial tour for very large instances
-     * Combines multiple heuristics to get Christofides-like quality
-     */
     private static List<Integer> getHighQualityInitialTour() {
         System.out.println("├─ Building high-quality initial tour...");
 
@@ -259,7 +243,9 @@ class ChristofidesEnhanced {
                     bestTour = tour;
                 }
             }
-        } // Approach 2: Nearest neighbor heuristic
+        }
+
+        // Approach 2: Nearest neighbor heuristic
         List<Integer> nnTour = NearestNeighbour.approximateTSPTour(City.distancesMatrix);
         if (nnTour != null) {
             int cost = City.calculateTourCost(nnTour, City.distancesMatrix);

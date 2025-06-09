@@ -1,6 +1,9 @@
 import java.util.*;
 
+// Tree operations for Christofides algorithm implementation
+// Includes MST generation, matching operations, and Eulerian tour conversion
 class TreeOperations {
+    // Find vertex with minimum key value not yet in MST
     public static int getMin(int[] key, boolean[] inMST) {
         int min_index = -1;
         int min = Integer.MAX_VALUE;
@@ -11,7 +14,7 @@ class TreeOperations {
             }
         }
         return min_index;
-    }
+    } // Generate Minimum Spanning Tree using Prim's algorithm
 
     public static int[][] primMST(int[][] graph) {
         int n = graph.length;
@@ -23,7 +26,9 @@ class TreeOperations {
         minEdge[0] = 0;
         parent[0] = -1;
 
+        // Build MST by selecting minimum weight edges
         for (int i = 0; i < n - 1; i++) {
+            // Find unvisited vertex with minimum edge weight
             int u = -1;
             for (int j = 0; j < n; j++) {
                 if (!visited[j] && (u == -1 || minEdge[j] < minEdge[u])) {
@@ -33,6 +38,7 @@ class TreeOperations {
 
             visited[u] = true;
 
+            // Update minimum edges for neighbors
             for (int v = 0; v < n; v++) {
                 if (graph[u][v] != 0 && !visited[v] && graph[u][v] < minEdge[v]) {
                     minEdge[v] = graph[u][v];
@@ -41,32 +47,33 @@ class TreeOperations {
             }
         }
 
+        // Build MST matrix from parent relationships
         for (int i = 1; i < n; i++) {
             mst[i][parent[i]] = graph[i][parent[i]];
             mst[parent[i]][i] = graph[parent[i]][i];
         }
 
         return mst;
-    }
-
+    } // Build adjacency list representation from MST edges
 
     public static List<List<Integer>> buildAdjacencyList(int[][] mstEdges, int n) {
         List<List<Integer>> adj = new ArrayList<>();
         for (int i = 0; i < n; i++) {
             adj.add(new ArrayList<>());
         }
+        // Add edges in both directions for undirected graph
         for (int[] edge : mstEdges) {
             int u = edge[0], v = edge[1];
             adj.get(u).add(v);
             adj.get(v).add(u);
         }
         return adj;
-    }
-
+    } // Find vertices with odd degree in MST for perfect matching
 
     public static List<Integer> getOddDegreeVertices(int[][] mstEdges, int n) {
-        int[] degree = new int[n];  // Her düğümün derecesini tutar
+        int[] degree = new int[n]; // Track degree of each vertex
 
+        // Calculate degree for each vertex
         for (int[] mstEdge : mstEdges) {
             int u = mstEdge[0];
             int v = mstEdge[1];
@@ -74,6 +81,7 @@ class TreeOperations {
             degree[v]++;
         }
 
+        // Collect vertices with odd degree
         List<Integer> oddVertices = new ArrayList<>();
         for (int i = 0; i < n; i++) {
             if (degree[i] % 2 != 0) {
@@ -82,11 +90,12 @@ class TreeOperations {
         }
 
         return oddVertices;
-    }
+    } // Create complete graph from odd degree vertices for matching
 
     public static int[][] createOddDegreeGraph(List<Integer> oddVertices) {
         int n = oddVertices.size();
         int[][] oddGraph = new int[n][n];
+        // Create complete graph with all pairwise distances
         for (int i = 0; i < n; i++) {
             for (int j = i + 1; j < n; j++) {
                 int u = oddVertices.get(i);
@@ -96,9 +105,10 @@ class TreeOperations {
             }
         }
         return oddGraph;
-    }
+    } // DFS traversal to find Eulerian tour in multigraph
 
     public static void dfsEulerian(int node, List<List<Integer>> adj, boolean[][] visitedEdges, List<Integer> tour) {
+        // Visit all unvisited edges from current node
         for (int neighbor : adj.get(node)) {
             if (!visitedEdges[node][neighbor]) {
                 visitedEdges[node][neighbor] = true;
@@ -107,29 +117,30 @@ class TreeOperations {
             }
         }
         tour.add(node);
-    }
+    } // Convert Eulerian tour to Hamiltonian by skipping repeated vertices
 
     public static List<Integer> makeHamiltonianTour(List<Integer> eulerTour) {
         Collections.reverse(eulerTour);
         Set<Integer> visited = new HashSet<>();
         List<Integer> hamiltonianTour = new ArrayList<>();
 
-        // Tersten eklenmiş olduğu için tersten gezip tekrar normale çevirebiliriz ya da direkt tersini alabiliriz
+        // Reverse to correct order after DFS traversal
         Collections.reverse(eulerTour);
 
+        // Skip repeated vertices to create Hamiltonian tour
         for (int city : eulerTour) {
             if (!visited.contains(city)) {
                 visited.add(city);
                 hamiltonianTour.add(city);
             }
         }
-        // Başlangıç noktasına dönmek için turun sonuna ilk şehri ekle
+        // Return to starting city to complete tour
         if (!hamiltonianTour.isEmpty()) {
             hamiltonianTour.add(hamiltonianTour.get(0));
         }
 
         return hamiltonianTour;
-    }
+    } // Combine MST and perfect matching to create multigraph
 
     public static List<List<Integer>> combineTrees(List<List<Integer>> mst, List<List<Integer>> matching) {
         int n = City.distancesMatrix.length;
@@ -138,7 +149,7 @@ class TreeOperations {
             combined.add(new ArrayList<>());
         }
 
-        // MST'den kenarları ekle
+        // Add edges from MST
         for (int u = 0; u < mst.size(); u++) {
             for (int v : mst.get(u)) {
                 if (!combined.get(u).contains(v))
@@ -148,7 +159,7 @@ class TreeOperations {
             }
         }
 
-        // Blossom eşleşmelerini ekle
+        // Add edges from perfect matching
         for (List<Integer> edge : matching) {
             int u = edge.get(0);
             int v = edge.get(1);
@@ -161,48 +172,3 @@ class TreeOperations {
         return combined;
     }
 }
-
-
-
-
-
-
-//    public static void preorderDFS(int u, List<List<Integer>> tree, boolean[] visited, List<Integer> tour) {
-//        visited[u] = true;
-//        tour.add(u);
-//        for (int v : tree.get(u)) {
-//            if (!visited[v]) {
-//                preorderDFS(v, tree, visited, tour);
-//            }
-//        }
-//    }
-//    public static void preorderBFS(int u, List<List<Integer>> tree, boolean[] visited, List<Integer> tour) {
-//        int n = tree.size();
-//        boolean[] visitBefore = new boolean[n];
-//        Queue<Integer> queue = new LinkedList<>();
-//
-//        for (int i = 0; i < n; i++) {
-//            if (!visitBefore[i]) {
-//                queue.add(i);
-//                visitBefore[i] = true;
-//
-//                while (!queue.isEmpty()) {
-//                    int current = queue.poll();
-//                    System.out.print(current + " ");
-//
-//                    for (int neighbor : tree.get(current)) {
-//                        if (!visitBefore[neighbor]) {
-//                            visitBefore[neighbor] = true;
-//                            queue.add(neighbor);
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//    }
-//
-//
-//
-//
-
-
