@@ -8,7 +8,7 @@ public class Main {
     public static void main(String[] args) {
         System.out.println("Working Dir = " + System.getProperty("user.dir"));
 
-        String inputFileName = "src/example-input-3.txt";
+        String inputFileName = "src/example-input-4.txt";
         String outputFileName = inputFileName.replace("input", "output");
 
         System.out.println("TSP with Penalty Solver");

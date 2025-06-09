@@ -1,25 +1,44 @@
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 
-// ADD PRIVATE FİELDS AND GETTER SETTER FOR ENCAPSULATION MAYBE
-
 public class City {
-    double x, y;
-    int id;
-    static int penalty;
-    static LinkedList<City> cities = new LinkedList<City>();
-    static int[][] distancesMatrix;
-    // Cache for on-demand distance calculations (for large instances)
-    static Map<Long, Integer> distanceCache = new HashMap<>();
+    public double x, y;
+    public int id;
+    public static int penalty;
 
+    // Şehir listesi: sabit boyutlu erişim için ArrayList
+    public static final List<City> cities = new ArrayList<>();
+
+    // Sabit: büyük örneklerde matrix kullanılmaz
+    public static final int LARGE_INSTANCE_THRESHOLD = 5000;
+
+    // Mesafe matrisi (küçük örnekler için)
+    public static int[][] distancesMatrix;
+
+    // Dinamik mesafe önbelleği
+    public static final Map<Long, Integer> distanceCache = new HashMap<>();
+    public static final int MAX_CACHE_SIZE = 10_000_000;
+
+    // Yapıcı
     public City(int id, double x, double y) {
         this.id = id;
         this.x = x;
         this.y = y;
         cities.add(this);
+    }
 
+    public int getId() {
+        return id;
+    }
+
+    public static void setPenalty(int value) {
+        penalty = value;
+    }
+
+    public static List<City> getCities() {
+        return cities;
     }
 
     public int distanceTo(City other) {
@@ -33,18 +52,17 @@ public class City {
 
         try {
             distancesMatrix = new int[n][n];
-            System.out.println(" Distance matrix allocated successfully");
+            System.out.println("✅ Distance matrix allocated successfully.");
         } catch (OutOfMemoryError e) {
-            System.err.println("  Out of memory! Cannot create " + n + "x" + n + " matrix");
-            throw e;
+            System.err.println("❌ Out of memory! Cannot create " + n + "x" + n + " matrix.");
+            distancesMatrix = null;
+            return;
         }
 
-        // Fill matrix with progress indication
-        System.out.println(" Computing distances...");
+        System.out.println("🚀 Computing distances...");
         long startTime = System.currentTimeMillis();
 
         for (int i = 0; i < n; i++) {
-            // Show progress every 1000 cities
             if (i % 1000 == 0 && i > 0) {
                 long elapsed = System.currentTimeMillis() - startTime;
                 double progress = (double) i / n * 100;
@@ -59,72 +77,56 @@ public class City {
         }
 
         long totalTime = System.currentTimeMillis() - startTime;
-        System.out.println(" Distance matrix completed in " + (totalTime / 1000.0) + " seconds");
-    }
-
-    public static int calculateTourCost(List<Integer> tour, int[][] graph) {
-        int n = City.cities.size();
-
-        int visitedCount;
-        if (tour.size() > 1 && tour.get(0).equals(tour.get(tour.size() - 1))) {
-            visitedCount = tour.size() - 1;
-        } else {
-            visitedCount = tour.size();
-        }
-
-        int cost = 0;
-        for (int i = 0; i < visitedCount; i++) {
-            int u = tour.get(i);
-            int v = (i == visitedCount - 1) ? tour.get(0) : tour.get(i + 1);
-
-            // Use on-demand calculation if matrix is null
-            if (graph == null) {
-                cost += getDistance(u, v);
-            } else {
-                cost += graph[u][v];
-            }
-        }
-
-        int skipped = n - visitedCount;
-        cost += skipped * City.penalty;
-
-        return cost;
-    }
-    // Caching Mechanism for large instances
-
-    public static int getDistance(int cityI, int cityJ) {
-        if (distancesMatrix != null) {
-            return distancesMatrix[cityI][cityJ];
-        } else {
-            // For large instances, use cache to avoid recalculating same distances
-            long key = ((long) Math.min(cityI, cityJ) << 32) | Math.max(cityI, cityJ);
-
-            Integer cachedDistance = distanceCache.get(key);
-            if (cachedDistance != null) {
-                return cachedDistance;
-            }
-
-            // Calculate and cache the distance
-            int distance = cities.get(cityI).distanceTo(cities.get(cityJ));
-            distanceCache.put(key, distance);
-            return distance;
-        }
-    }
-
-    public static boolean isLargeInstance() {
-        return cities.size() > 5000;
+        System.out.println("✅ Distance matrix completed in " + (totalTime / 1000.0) + " seconds");
     }
 
     public static void createDistancesMatrixOptimized() {
-        // Clear cache for fresh start
         distanceCache.clear();
-
-        if (isLargeInstance()) {
+        if (cities.size() > LARGE_INSTANCE_THRESHOLD) {
             distancesMatrix = null;
-            return;
+            System.out.println("⚠️ Large instance detected, skipping matrix creation.");
         } else {
             createDistancesMatrix();
         }
     }
 
+    public static int getDistance(int i, int j) {
+        if (distancesMatrix != null) {
+            return distancesMatrix[i][j];
+        } else {
+            long key = ((long) Math.min(i, j) << 32) | Math.max(i, j);
+            Integer cached = distanceCache.get(key);
+            if (cached != null) return cached;
+
+            int d = cities.get(i).distanceTo(cities.get(j));
+
+            if (distanceCache.size() > MAX_CACHE_SIZE) {
+                System.out.println("♻️ Distance cache too large, clearing...");
+                distanceCache.clear();
+            }
+
+            distanceCache.put(key, d);
+            return d;
+        }
+    }
+
+    public static int calculateTourCost(List<Integer> tour, int[][] graph) {
+        int n = cities.size();
+
+        int visitedCount = (tour.size() > 1 && tour.get(0).equals(tour.get(tour.size() - 1)))
+                ? tour.size() - 1
+                : tour.size();
+
+        int cost = 0;
+        for (int i = 0; i < visitedCount; i++) {
+            int u = tour.get(i);
+            int v = (i == visitedCount - 1) ? tour.get(0) : tour.get(i + 1);
+            cost += (graph == null) ? getDistance(u, v) : graph[u][v];
+        }
+
+        int skipped = n - visitedCount;
+        cost += skipped * penalty;
+
+        return cost;
+    }
 }

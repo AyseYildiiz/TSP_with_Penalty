@@ -13,42 +13,42 @@ class TreeOperations {
         return min_index;
     }
 
-    public static int[][] primMST() {
-        int[][] graph = City.distancesMatrix;
-        int n = City.distancesMatrix.length;
+    public static int[][] primMST(int[][] graph) {
+        int n = graph.length;
+        int[][] mst = new int[n][n];
+        boolean[] visited = new boolean[n];
+        int[] minEdge = new int[n];
         int[] parent = new int[n];
-        int[] key = new int[n];
-        boolean[] inMST = new boolean[n];
-
-        for (int i = 0; i < n; i++) {
-            inMST[i] = false;
-            key[i] = Integer.MAX_VALUE;
-        }
-
-        key[0] = 0;
+        Arrays.fill(minEdge, Integer.MAX_VALUE);
+        minEdge[0] = 0;
         parent[0] = -1;
-        for (int count = 0; count < n - 1; count++) {
-            int u = getMin(key, inMST);
-            inMST[u] = true;
+
+        for (int i = 0; i < n - 1; i++) {
+            int u = -1;
+            for (int j = 0; j < n; j++) {
+                if (!visited[j] && (u == -1 || minEdge[j] < minEdge[u])) {
+                    u = j;
+                }
+            }
+
+            visited[u] = true;
+
             for (int v = 0; v < n; v++) {
-                if (graph[u][v] != 0 && !inMST[v]
-                        && graph[u][v] < key[v]) {
+                if (graph[u][v] != 0 && !visited[v] && graph[u][v] < minEdge[v]) {
+                    minEdge[v] = graph[u][v];
                     parent[v] = u;
-                    key[v] = graph[u][v];
                 }
             }
         }
-        List<int[]> mstEdges = new ArrayList<>();
+
         for (int i = 1; i < n; i++) {
-            mstEdges.add(new int[]{parent[i], i, graph[parent[i]][i]});
-        }
-        int[][] mstEdgesArray = new int[mstEdges.size()][3];
-        for (int i = 0; i < mstEdges.size(); i++) {
-            mstEdgesArray[i] = mstEdges.get(i);
+            mst[i][parent[i]] = graph[i][parent[i]];
+            mst[parent[i]][i] = graph[parent[i]][i];
         }
 
-        return mstEdgesArray;
+        return mst;
     }
+
 
     public static List<List<Integer>> buildAdjacencyList(int[][] mstEdges, int n) {
         List<List<Integer>> adj = new ArrayList<>();

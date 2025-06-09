@@ -4,7 +4,7 @@ public class TwiceAroundTheTree {
     public static List<Integer> approximateTSPTour(int[][] graph) {
         int n = graph.length;
 
-        int[][] mstEdges = TreeOperations.primMST();
+        int[][] mstEdges = TreeOperations.primMST(graph);
 
         List<List<Integer>> adj = TreeOperations.buildAdjacencyList(mstEdges, n);
 

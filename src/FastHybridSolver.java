@@ -28,8 +28,8 @@ public class FastHybridSolver {
         bestSolution = applyLimited2Opt(bestSolution, distanceMatrix, Math.min(n / 10, 1000));
 
         // Phase 4: Aggressive penalty-aware pruning
-        System.out.println("├─ Phase 3: Aggressive penalty-aware pruning...");
-        bestSolution = aggressivePruning(bestSolution, distanceMatrix);
+        System.out.println("├─ Phase 3: Smart perturbation...");
+        bestSolution = smartPerturbation(bestSolution, distanceMatrix, 5, 20);
 
         // Phase 5: Final local optimization
         System.out.println("├─ Phase 4: Final optimization...");
@@ -51,17 +51,17 @@ public class FastHybridSolver {
 
         // Strategy 1: Fast Nearest Neighbor from city 0
         try {
-            System.out.println("├─ Running NN from city 0...");
+            System.out.println("├─ Running Nearest Neighbour from city 0...");
             List<Integer> nn1 = fastNearestNeighbor(0, distanceMatrix, n);
             solutions.add(nn1);
-            System.out.println("├─ ✅ NN from 0 completed");
+            System.out.println("├─ ✅ Nearest Neighbour from 0 completed");
         } catch (Exception e) {
-            System.out.println("├─ ❌ NN from 0 failed: " + e.getMessage());
+            System.out.println("├─ ❌ Nearest Neighbour from 0 failed: " + e.getMessage());
         }
 
         // Strategy 2: Fast NN from 2 strategic points only
         try {
-            System.out.println("├─ Running NN from strategic points...");
+            System.out.println("├─ Running Nearest Neighbour from strategic points...");
             List<Integer> nnMid = fastNearestNeighbor(n / 2, distanceMatrix, n);
             solutions.add(nnMid);
 
@@ -81,6 +81,16 @@ public class FastHybridSolver {
                 System.out.println("├─ ✅ Greedy sampling completed");
             } catch (Exception e) {
                 System.out.println("├─ ❌ Sampling approach failed: " + e.getMessage());
+            }
+        }
+        else {
+            try {
+                System.out.println("├─ Running Twice Around the Tree...");
+                List<Integer> twiceTour = TwiceAroundTheTree.approximateTSPTour(distanceMatrix);
+                solutions.add(twiceTour);
+                System.out.println("├─ ✅ Twice Around completed");
+            } catch (Exception e) {
+                System.out.println("├─ ❌ Twice Around failed: " + e.getMessage());
             }
         }
 
@@ -139,49 +149,36 @@ public class FastHybridSolver {
      * Create greedy sampling-based tour for very large instances
      */
     private static List<Integer> createGreedySamplingTour(int[][] distanceMatrix, int n) {
-        // Start with a smaller subset and expand
         List<Integer> tour = new ArrayList<>();
         boolean[] inTour = new boolean[n];
 
         // Start from city 0
-        tour.add(0);
-        inTour[0] = true;
+        int current = 0;
+        tour.add(current);
+        inTour[current] = true;
 
         // Greedily add closest cities
         while (tour.size() < n) {
-            int bestCity = -1;
-            int bestDistance = Integer.MAX_VALUE;
-            int bestPosition = -1;
+            int nextCity = -1;
+            int minDistance = Integer.MAX_VALUE;
 
-            // Find best city to insert
             for (int city = 0; city < n; city++) {
-                if (inTour[city])
-                    continue;
-
-                // Find best position to insert this city
-                for (int pos = 1; pos <= tour.size(); pos++) {
-                    int prev = tour.get(pos - 1);
-                    int next = (pos < tour.size()) ? tour.get(pos) : tour.get(0);
-
-                    int insertCost = getDistanceValue(prev, city, distanceMatrix) +
-                            getDistanceValue(city, next, distanceMatrix) -
-                            getDistanceValue(prev, next, distanceMatrix);
-
-                    if (insertCost < bestDistance) {
-                        bestDistance = insertCost;
-                        bestCity = city;
-                        bestPosition = pos;
+                if (!inTour[city]) {
+                    int distance = getDistanceValue(current, city, distanceMatrix);
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        nextCity = city;
                     }
                 }
             }
 
-            if (bestCity != -1) {
-                tour.add(bestPosition, bestCity);
-                inTour[bestCity] = true;
+            if (nextCity != -1) {
+                tour.add(nextCity);
+                inTour[nextCity] = true;
+                current = nextCity;
 
-                // Show progress for large instances
                 if (tour.size() % 1000 == 0) {
-                    System.out.printf("   Greedy insertion: %d/%d cities\r", tour.size(), n);
+                    System.out.printf("   Fast greedy: %d/%d\r", tour.size(), n);
                 }
             } else {
                 break;
@@ -224,22 +221,21 @@ public class FastHybridSolver {
             return tour;
 
         List<Integer> result = new ArrayList<>(tour);
-        boolean improved = true;
-        int iterations = 0;
+        Random rand = new Random();
 
-        while (improved && iterations < maxIterations) {
-            improved = false;
+        int n = result.size();
+        int successfulSwaps = 0;
 
-            for (int i = 1; i < result.size() - 2 && !improved; i++) {
-                for (int j = i + 1; j < result.size() - 1 && !improved; j++) {
-                    if (try2OptSwap(result, i, j, distanceMatrix)) {
-                        improved = true;
-                    }
-                }
+        for (int iter = 0; iter < maxIterations; iter++) {
+            int i = rand.nextInt(n - 3) + 1;
+            int j = i + rand.nextInt(Math.min(n - i - 2, 20)); // j: i'den sonra, ama çok uzak değil
+
+            if (try2OptSwap(result, i, j, distanceMatrix)) {
+                successfulSwaps++;
             }
-            iterations++;
         }
 
+        System.out.println("   Randomized 2-opt: " + successfulSwaps + " successful swaps");
         return result;
     }
 
@@ -273,50 +269,40 @@ public class FastHybridSolver {
     /**
      * Aggressive penalty-aware pruning for large instances
      */
-    private static List<Integer> aggressivePruning(List<Integer> tour, int[][] distanceMatrix) {
-        List<Integer> result = new ArrayList<>(tour);
-        boolean improved = true;
+    /**
+     * Smart perturbation: Shuffle a random small segment and reinsert optimally
+     */
+    private static List<Integer> smartPerturbation(List<Integer> tour, int[][] distanceMatrix, int segmentSize, int iterations) {
+        Random rand = new Random();
+        List<Integer> bestTour = new ArrayList<>(tour);
+        int bestCost = City.calculateTourCost(bestTour, distanceMatrix);
 
-        while (improved) {
-            improved = false;
+        for (int it = 0; it < iterations; it++) {
+            int n = bestTour.size();
 
-            // Remove cities one by one if beneficial
-            for (int i = 1; i < result.size() - 1; i++) {
-                List<Integer> testTour = new ArrayList<>(result);
-                testTour.remove(i);
+            // Choose a random segment of 'segmentSize' to shuffle
+            if (n <= segmentSize + 2) break; // not enough cities
 
-                int originalCost = City.calculateTourCost(result, distanceMatrix);
-                int newCost = City.calculateTourCost(testTour, distanceMatrix);
+            int start = 1 + rand.nextInt(n - segmentSize - 1); // avoid start/end
+            List<Integer> segment = new ArrayList<>(bestTour.subList(start, start + segmentSize));
+            Collections.shuffle(segment);
 
-                if (newCost < originalCost) {
-                    result = testTour;
-                    improved = true;
-                    break;
-                }
-            }
+            // Create a new tour by replacing segment
+            List<Integer> newTour = new ArrayList<>(bestTour.subList(0, start));
+            newTour.addAll(segment);
+            newTour.addAll(bestTour.subList(start + segmentSize, n));
 
-            // Try removing sequences of 2-3 cities
-            if (!improved) {
-                for (int len = 2; len <= 3 && !improved; len++) {
-                    for (int start = 1; start < result.size() - len; start++) {
-                        List<Integer> testTour = new ArrayList<>(result);
-                        for (int k = 0; k < len; k++) {
-                            testTour.remove(start);
-                        }
+            // Local 2-opt improvement (just a bit)
+            newTour = applyLimited2Opt(newTour, distanceMatrix, 10);
 
-                        int originalCost = City.calculateTourCost(result, distanceMatrix);
-                        int newCost = City.calculateTourCost(testTour, distanceMatrix);
-
-                        if (newCost < originalCost) {
-                            result = testTour;
-                            improved = true;
-                            break;
-                        }
-                    }
-                }
+            int newCost = City.calculateTourCost(newTour, distanceMatrix);
+            if (newCost < bestCost) {
+                bestTour = newTour;
+                bestCost = newCost;
             }
         }
 
-        return result;
+        return bestTour;
     }
+
 }

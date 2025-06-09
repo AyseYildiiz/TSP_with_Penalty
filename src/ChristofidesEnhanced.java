@@ -93,7 +93,7 @@ class ChristofidesEnhanced {
      * Traditional Christofides using distance matrix
      */
     private static List<Integer> getMatrixBasedChristofidesTour() {
-        int[][] mst = TreeOperations.primMST();
+        int[][] mst = TreeOperations.primMST(City.distancesMatrix);
         List<List<Integer>> adjacencyList = TreeOperations.buildAdjacencyList(mst, City.distancesMatrix.length);
         List<Integer> odd = TreeOperations.getOddDegreeVertices(mst, City.distancesMatrix.length);
         List<List<Integer>> blossom = Blossom.minimumWeightPerfectMatching(odd, City.cities);
